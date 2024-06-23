@@ -6,13 +6,14 @@ app = Flask(__name__)
 CORS(app)
 
 # Configuración de la base de datos
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://usuario:contraseña@host/nombre_basedatos'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://yoelchupa_admin:Nachitodeache11@mysql-yoelchupa.alwaysdata.net/yoelchupa_ecolimdb'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
 # Modelo de la base de datos
-class Servicio(db.Model):
+class Usuario(db.Model):
+    __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     correo = db.Column(db.String(100), nullable=True)
@@ -23,14 +24,14 @@ class Servicio(db.Model):
 @app.route('/submit_form', methods=['POST'])
 def submit_form():
     data = request.form
-    nuevo_servicio = Servicio(
+    nuevo_usuario = Usuario(
         nombre=data.get('nombre'),
         correo=data.get('correo'),
         telefono=data.get('telefono'),
         servicio=data.get('servicio'),
         descripcion=data.get('descripcion')
     )
-    db.session.add(nuevo_servicio)
+    db.session.add(nuevo_usuario)
     db.session.commit()
     return jsonify({"message": "Datos enviados con éxito"}), 200
 
