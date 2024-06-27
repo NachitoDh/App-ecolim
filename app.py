@@ -9,7 +9,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Definición del modelo de base de datos
-class usuario(db.Model):
+class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     telefono = db.Column(db.String(100), nullable=False)
@@ -36,7 +36,7 @@ def submit():
         descripcion = request.form['descripcion']
         servicio = request.form['servicio']
         
-        nuevo_usuario = usuario(nombre=nombre, telefono=telefono, correo=correo, descripcion=descripcion, servicio=servicio)
+        nuevo_usuario = Usuario(nombre=nombre, telefono=telefono, correo=correo, descripcion=descripcion, servicio=servicio)
         db.session.add(nuevo_usuario)
         db.session.commit()
         
