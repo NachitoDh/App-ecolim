@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -20,11 +20,6 @@ class Usuario(db.Model):
 # Crear la tabla en la base de datos
 with app.app_context():
     db.create_all()
-
-# Ruta para mostrar el formulario
-@app.route('/')
-def formulario():
-    return render_template('formulario.html')
 
 # Ruta para manejar el envío del formulario
 @app.route('/submit', methods=['POST'])
