@@ -1,11 +1,17 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, flash
 from flask_sqlalchemy import SQLAlchemy
+import pymysql
 
 app = Flask(__name__)
+app.secret_key = 'supersecretkey'
 
 # Configuración de la base de datos
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://yoelchupa_admin:Nachitodeache11@mysql-yoelchupa.alwaysdata.net/yoelchupa_ecolimdb'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_recycle': 280,
+    'pool_pre_ping': True
+}
 db = SQLAlchemy(app)
 
 # Definición del modelo de base de datos
@@ -29,7 +35,7 @@ def formulario():
 # Ruta para manejar el envío del formulario
 @app.route('/submit', methods=['POST'])
 def submit():
-    if request.method == 'POST':
+    try:
         nombre = request.form['nombre']
         telefono = request.form['telefono']
         correo = request.form['correo']
@@ -40,6 +46,15 @@ def submit():
         db.session.add(nuevo_usuario)
         db.session.commit()
         
+        flash('Datos enviados exitosamente')
+        return redirect('/')
+    except pymysql.err.OperationalError as e:
+        db.session.rollback()
+        flash(f'Error de conexión a la base de datos: {str(e)}')
+        return redirect('/')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ocurrió un error: {str(e)}')
         return redirect('/')
         
 if __name__ == '__main__':
