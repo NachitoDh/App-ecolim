@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, flash
+from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import pymysql
 
@@ -46,16 +46,13 @@ def submit():
         db.session.add(nuevo_usuario)
         db.session.commit()
         
-        flash('Datos enviados exitosamente')
-        return redirect('/')
+        return jsonify({'message': 'Datos enviados exitosamente'})
     except pymysql.err.OperationalError as e:
         db.session.rollback()
-        flash(f'Error de conexión a la base de datos: {str(e)}')
-        return redirect('/')
+        return jsonify({'message': f'Error de conexión a la base de datos: {str(e)}'}), 500
     except Exception as e:
         db.session.rollback()
-        flash(f'Ocurrió un error: {str(e)}')
-        return redirect('/')
+        return jsonify({'message': f'Ocurrió un error: {str(e)}'}), 500
         
 if __name__ == '__main__':
     app.run(debug=True)
