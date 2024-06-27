@@ -1,17 +1,11 @@
 from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-import pymysql
 
 app = Flask(__name__)
-app.secret_key = 'supersecretkey'
 
 # Configuración de la base de datos
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://yoelchupa_admin:Nachitodeache11@mysql-yoelchupa.alwaysdata.net/yoelchupa_ecolimdb'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_recycle': 280,
-    'pool_pre_ping': True
-}
 db = SQLAlchemy(app)
 
 # Definición del modelo de base de datos
@@ -35,7 +29,7 @@ def formulario():
 # Ruta para manejar el envío del formulario
 @app.route('/submit', methods=['POST'])
 def submit():
-    try:
+    if request.method == 'POST':
         nombre = request.form['nombre']
         telefono = request.form['telefono']
         correo = request.form['correo']
@@ -46,13 +40,9 @@ def submit():
         db.session.add(nuevo_usuario)
         db.session.commit()
         
-        return jsonify({'message': 'Datos enviados exitosamente'})
-    except pymysql.err.OperationalError as e:
-        db.session.rollback()
-        return jsonify({'message': f'Error de conexión a la base de datos: {str(e)}'}), 500
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'message': f'Ocurrió un error: {str(e)}'}), 500
-        
+        # Prepara la respuesta JSON
+        response_data = {'message': 'Datos enviados exitosamente'}
+        return jsonify(response_data), 200
+
 if __name__ == '__main__':
     app.run(debug=True)
