@@ -36,7 +36,10 @@ def submit():
         correo = request.form['correo']
         descripcion = request.form['descripcion']
         servicio = request.form['servicio']
-        
+
+        if not re.match(r'^[0-9]+$', telefono):
+            return jsonify({'error': 'El teléfono debe contener solo números'}), 400
+            
         nuevo_usuario = Usuario(nombre=nombre, telefono=telefono, correo=correo, descripcion=descripcion, servicio=servicio)
         db.session.add(nuevo_usuario)
         db.session.commit()
