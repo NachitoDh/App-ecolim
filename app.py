@@ -21,6 +21,10 @@ class Usuario(db.Model):
 with app.app_context():
     db.create_all()
 
+@app.route('/')
+def home():
+    return 'Bienvenido a la API de Ecolim'
+
 # Ruta para manejar el envío del formulario
 @app.route('/submit', methods=['POST'])
 def submit():
