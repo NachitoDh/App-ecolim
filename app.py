@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)  # Permitir CORS para todas las rutas
 
 # Configuración de la base de datos
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://yoelchupa_admin:Nachitodeache11@mysql-yoelchupa.alwaysdata.net/yoelchupa_ecolimdb'
@@ -44,6 +46,7 @@ def submit():
         return jsonify(response_data), 200
     except Exception as e:
         # Maneja la excepción y envía una respuesta JSON con el error
+        app.logger.error(f"Error al enviar datos: {e}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
