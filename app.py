@@ -29,7 +29,7 @@ def formulario():
 # Ruta para manejar el envío del formulario
 @app.route('/submit', methods=['POST'])
 def submit():
-    if request.method == 'POST':
+    try:
         nombre = request.form['nombre']
         telefono = request.form['telefono']
         correo = request.form['correo']
@@ -43,6 +43,9 @@ def submit():
         # Prepara la respuesta JSON
         response_data = {'message': 'Datos enviados exitosamente'}
         return jsonify(response_data), 200
+    except Exception as e:
+        # Maneja la excepción y envía una respuesta JSON con el error
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
