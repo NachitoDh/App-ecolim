@@ -1,14 +1,29 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+import requests
+import os
+from dotenv import load_dotenv
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+# Cargar variables de entorno desde un archivo .env
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)  # Permitir CORS para todas las rutas
 
 # Configuración de la base de datos
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://yoelchupa_admin:Nachitodeache11@mysql-yoelchupa.alwaysdata.net/yoelchupa_ecolimdb'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
+# Configuración de límite de tasa
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"]
+)
 
 # Definición del modelo de base de datos
 class Usuario(db.Model):
@@ -27,9 +42,24 @@ with app.app_context():
 def home():
     return 'Bienvenido a la API de Ecolim'
 
+# Validación de reCAPTCHA
+def validar_recaptcha(token):
+    secret_key = os.getenv('RECAPTCHA_SECRET_KEY')
+    response = requests.post(
+        'https://www.google.com/recaptcha/api/siteverify',
+        data={'secret': secret_key, 'response': token}
+    )
+    result = response.json()
+    return result.get('success', False)
+
 # Ruta para manejar el envío del formulario
 @app.route('/submit', methods=['POST'])
+@limiter.limit("5 per minute")  # Limitar la tasa de solicitudes
 def submit():
+    recaptcha_token = request.form.get('g-recaptcha-response')
+    if not recaptcha_token or not validar_recaptcha(recaptcha_token):
+        return jsonify({'error': 'Error de validación de reCAPTCHA'}), 400
+
     try:
         nombre = request.form['nombre']
         telefono = request.form['telefono']
@@ -37,19 +67,25 @@ def submit():
         descripcion = request.form['descripcion']
         servicio = request.form['servicio']
 
-       
-            
-        nuevo_usuario = Usuario(nombre=nombre, telefono=telefono, correo=correo, descripcion=descripcion, servicio=servicio)
+        # Validación adicional de los campos (ejemplo simple)
+        if not nombre or not telefono or not descripcion or not servicio:
+            return jsonify({'error': 'Todos los campos obligatorios deben estar llenos'}), 400
+
+        nuevo_usuario = Usuario(
+            nombre=nombre,
+            telefono=telefono,
+            correo=correo,
+            descripcion=descripcion,
+            servicio=servicio
+        )
         db.session.add(nuevo_usuario)
         db.session.commit()
-        
-        # Prepara la respuesta JSON
+
         response_data = {'message': 'Datos enviados exitosamente'}
         return jsonify(response_data), 200
     except Exception as e:
-        # Maneja la excepción y envía una respuesta JSON con el error
         app.logger.error(f"Error al enviar datos: {e}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)  # Deshabilitar depuración en producción
