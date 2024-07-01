@@ -3,3 +3,10 @@ Flask-SQLAlchemy
 PyMySQL
 gunicorn
 flask_cors
+
+
+
+Flask-Limiter
+python-dotenv
+requests
+
