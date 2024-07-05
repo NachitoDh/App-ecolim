@@ -6,6 +6,8 @@ import os
 from dotenv import load_dotenv
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import threading
+import time
 
 # Cargar variables de entorno desde un archivo .env
 load_dotenv()
@@ -68,7 +70,7 @@ def submit():
         servicio = request.form['servicio']
 
         # Validación adicional de los campos (ejemplo simple)
-        if not nombre or not telefono or not descripcion or not servicio:
+        if not nombre, not telefono, not descripcion, not servicio:
             return jsonify({'error': 'Todos los campos obligatorios deben estar llenos'}), 400
 
         nuevo_usuario = Usuario(
@@ -87,5 +89,19 @@ def submit():
         app.logger.error(f"Error al enviar datos: {e}")
         return jsonify({'error': str(e)}), 500
 
+def keep_alive():
+    while True:
+        try:
+            response = requests.get("http://localhost:5000")
+            if response.status_code == 200:
+                app.logger.info("Ping exitoso para mantener la aplicación activa")
+            else:
+                app.logger.error("Error al hacer ping a la aplicación")
+        except Exception as e:
+            app.logger.error(f"Excepción al hacer ping: {e}")
+        time.sleep(240)  # Hacer ping cada 4 minutos
+
 if __name__ == '__main__':
+    # Iniciar el hilo para mantener la aplicación activa
+    threading.Thread(target=keep_alive).start()
     app.run(debug=False)  # Deshabilitar depuración en producción
