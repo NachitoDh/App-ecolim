@@ -9,4 +9,4 @@ flask_cors
 Flask-Limiter
 python-dotenv
 requests
-
+twilio.rest
