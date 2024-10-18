@@ -63,8 +63,8 @@ def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
 
     message = client.messages.create(
         from_='whatsapp:+14155238886',  # Número de Twilio para WhatsApp
-        to='whatsapp:+56974215231',  # Tu número personal de WhatsApp (reemplázalo)
-        body=f"Hola {nombre}, te saluda Ecolim. Te contactaremos pronto para ayudarte con tu servicio de {servicio}. Descripción: {descripcion}."
+        to='whatsapp:+56948425081',  # Tu número personal de WhatsApp (reemplázalo)
+        body=f" {nombre}, Esta consultando informacion por un servicio de: {servicio}. Descripción: {descripcion}."
     )
     print(f"Mensaje enviado: {message.sid}")
 
