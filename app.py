@@ -57,15 +57,14 @@ def validar_recaptcha(token):
 
 # Función para enviar el mensaje de WhatsApp usando Twilio
 def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
-    account_sid = 'AC796db552a44835c8d73ab593bee19d51'  # Reemplaza con tu Account SID de Twilio
-    auth_token = '[AuthToken]'  # Reemplaza con tu Auth Token
+    account_sid = os.getenv('TWILIO_ACCOUNT_SID')  # Cargar desde variable de entorno
+    auth_token = os.getenv('TWILIO_AUTH_TOKEN')    # Cargar desde variable de entorno
     client = Client(account_sid, auth_token)
 
     message = client.messages.create(
         from_='whatsapp:+14155238886',  # Número de Twilio para WhatsApp
-        content_sid='HX229f5a04fd0510ce1b071852155d3e75',  # Content SID si es necesario
-        content_variables='{"1":"409173"}',  # Si usas variables de contenido dinámico
-        to='whatsapp:+56974215231'  # Tu número personal de WhatsApp (reemplázalo)
+        to='whatsapp:+56974215231',  # Tu número personal de WhatsApp (reemplázalo)
+        body=f"Hola {nombre}, te saluda Ecolim. Te contactaremos pronto para ayudarte con tu servicio de {servicio}. Descripción: {descripcion}."
     )
     print(f"Mensaje enviado: {message.sid}")
 
