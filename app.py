@@ -100,7 +100,7 @@ def submit():
         # Enviar el mensaje por WhatsApp usando Twilio
         enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion)
 
-        response_data = {'message': 'Datos enviados exitosamente y mensaje enviado a WhatsApp'}
+        response_data = {'message': 'Datos enviados exitosamente!'}
         return jsonify(response_data), 200
     except Exception as e:
         app.logger.error(f"Error al enviar datos: {e}")
