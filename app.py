@@ -7,6 +7,9 @@ from dotenv import load_dotenv
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
+# Importar Twilio
+from twilio.rest import Client
+
 # Cargar variables de entorno desde un archivo .env
 load_dotenv()
 
@@ -52,6 +55,20 @@ def validar_recaptcha(token):
     result = response.json()
     return result.get('success', False)
 
+# Función para enviar el mensaje de WhatsApp usando Twilio
+def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
+    account_sid = 'AC796db552a44835c8d73ab593bee19d51'  # Reemplaza con tu Account SID de Twilio
+    auth_token = '[AuthToken]'  # Reemplaza con tu Auth Token
+    client = Client(account_sid, auth_token)
+
+    message = client.messages.create(
+        from_='whatsapp:+14155238886',  # Número de Twilio para WhatsApp
+        content_sid='HX229f5a04fd0510ce1b071852155d3e75',  # Content SID si es necesario
+        content_variables='{"1":"409173"}',  # Si usas variables de contenido dinámico
+        to='whatsapp:+56974215231'  # Tu número personal de WhatsApp (reemplázalo)
+    )
+    print(f"Mensaje enviado: {message.sid}")
+
 # Ruta para manejar el envío del formulario
 @app.route('/submit', methods=['POST'])
 @limiter.limit("5 per minute")  # Limitar la tasa de solicitudes
@@ -81,7 +98,10 @@ def submit():
         db.session.add(nuevo_usuario)
         db.session.commit()
 
-        response_data = {'message': 'Datos enviados exitosamente'}
+        # Enviar el mensaje por WhatsApp usando Twilio
+        enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion)
+
+        response_data = {'message': 'Datos enviados exitosamente y mensaje enviado a WhatsApp'}
         return jsonify(response_data), 200
     except Exception as e:
         app.logger.error(f"Error al enviar datos: {e}")
