@@ -6,15 +6,13 @@ import os
 from dotenv import load_dotenv
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-
-# Importar Twilio
 from twilio.rest import Client
 
-# Cargar variables de entorno desde un archivo .env
+# Cargar variables de entorno
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)  # Permitir CORS para todas las rutas
+CORS(app)  # Permitir CORS en todas las rutas
 
 # Configuración de la base de datos
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI')
@@ -28,7 +26,7 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"]
 )
 
-# Definición del modelo de base de datos
+# Modelo de base de datos
 class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
@@ -37,9 +35,12 @@ class Usuario(db.Model):
     descripcion = db.Column(db.String(200), nullable=False)
     servicio = db.Column(db.String(50), nullable=False)
 
-# Crear la tabla en la base de datos
+# Crear la tabla solo si no existe
 with app.app_context():
-    db.create_all()
+    try:
+        db.create_all()
+    except Exception as e:
+        print(f"Error al crear la base de datos: {e}")
 
 @app.route('/')
 def home():
@@ -52,21 +53,23 @@ def validar_recaptcha(token):
         'https://www.google.com/recaptcha/api/siteverify',
         data={'secret': secret_key, 'response': token}
     )
-    result = response.json()
-    return result.get('success', False)
+    return response.json().get('success', False)
 
-# Función para enviar el mensaje de WhatsApp usando Twilio
+# Enviar mensaje de WhatsApp con Twilio
 def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
-    account_sid = os.getenv('TWILIO_ACCOUNT_SID')  # Cargar desde variable de entorno
-    auth_token = os.getenv('TWILIO_AUTH_TOKEN')    # Cargar desde variable de entorno
-    client = Client(account_sid, auth_token)
+    try:
+        account_sid = os.getenv('TWILIO_ACCOUNT_SID')
+        auth_token = os.getenv('TWILIO_AUTH_TOKEN')
+        client = Client(account_sid, auth_token)
 
-    message = client.messages.create(
-        from_='whatsapp:+14155238886',  # Número de Twilio para WhatsApp
-        to='whatsapp:+56948425081',  # Tu número personal de WhatsApp (reemplázalo)
-        body=f" {nombre}, Esta consultando informacion por un servicio de: {servicio}. Descripción: {descripcion}. su numero de telefono es: +56{telefono}"
-    )
-    print(f"Mensaje enviado: {message.sid}")
+        message = client.messages.create(
+            from_='whatsapp:+14155238886',  # Número de Twilio para WhatsApp
+            to=os.getenv('TWILIO_DESTINO'),  # Número destino desde .env
+            body=f"{nombre} consultó sobre {servicio}. Descripción: {descripcion}. Teléfono: +56{telefono}"
+        )
+        print(f"Mensaje enviado: {message.sid}")
+    except Exception as e:
+        print(f"Error al enviar mensaje: {e}")
 
 # Ruta para manejar el envío del formulario
 @app.route('/submit', methods=['POST'])
@@ -83,7 +86,6 @@ def submit():
         descripcion = request.form['descripcion']
         servicio = request.form['servicio']
 
-        # Validación adicional de los campos (ejemplo simple)
         if not nombre or not telefono or not descripcion or not servicio:
             return jsonify({'error': 'Todos los campos obligatorios deben estar llenos'}), 400
 
@@ -97,14 +99,13 @@ def submit():
         db.session.add(nuevo_usuario)
         db.session.commit()
 
-        # Enviar el mensaje por WhatsApp usando Twilio
         enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion)
 
-        response_data = {'message': 'Datos enviados exitosamente!'}
-        return jsonify(response_data), 200
+        return jsonify({'message': 'Datos enviados exitosamente!'}), 200
     except Exception as e:
         app.logger.error(f"Error al enviar datos: {e}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=False)  # Deshabilitar depuración en producción
+    port = int(os.getenv("PORT", 5000))  # Obtener el puerto desde Railway
+    app.run(host='0.0.0.0', port=port, debug=False)  # Host abierto para Railway
