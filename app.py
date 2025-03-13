@@ -8,6 +8,31 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from twilio.rest import Client
 
+import threading
+import time
+
+
+def keep_alive():
+    url = os.getenv('RAILWAY_URL')  # Asegúrate de definir esta variable en Railway con tu dominio
+    if not url:
+        print("RAILWAY_URL no está configurada. Keep-alive deshabilitado.")
+        return
+
+    def ping():
+        while True:
+            try:
+                requests.get(url)
+                print(f"Ping enviado a {url}")
+            except requests.exceptions.RequestException as e:
+                print(f"Error en keep-alive: {e}")
+            time.sleep(30)  # Enviar un ping cada 30 segundos
+
+    thread = threading.Thread(target=ping, daemon=True)
+    thread.start()
+
+# Iniciar el keep-alive
+keep_alive()
+
 # Cargar variables de entorno
 load_dotenv()
 
