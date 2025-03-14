@@ -70,27 +70,25 @@ def validar_recaptcha(token):
     )
     return response.json().get('success', False)
 
+import requests
+import os
+
 def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
     try:
-        instance_id = os.getenv('ULTRAMSG_INSTANCE_ID')  # ID de tu instancia UltraMsg
+        instance_id = os.getenv('ULTRAMSG_INSTANCE_ID')  # ID de la instancia UltraMsg
         token = os.getenv('ULTRAMSG_TOKEN')  # Token de autenticación UltraMsg
-        destino = os.getenv('ULTRAMSG_DESTINO')  # Tu número de WhatsApp donde recibirás los mensajes
+        destino = os.getenv('ULTRAMSG_DESTINO')  # Número de WhatsApp donde recibirás los mensajes
 
-        # Construcción de la URL siguiendo la estructura de UltraMsg
-        url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
-        params = {
-            "token": token,
-            "to": destino,  # Solo se envía a TU número, no al del cliente
-            "body": f"Nuevo contacto:\nNombre: {nombre}\nTeléfono: +56{telefono}\nServicio: {servicio}\nDescripción: {descripcion}",
-            "priority": 10
-        }
+        # Construcción exacta de la URL como en el ejemplo
+        url = f"https://api.ultramsg.com/{instance_id}/messages/chat?token={token}&to={destino}&body=Nuevo+contacto%3A%0ANombre%3A+{nombre}%0ATeléfono%3A+56{telefono}%0AServicio%3A+{servicio}%0ADescripción%3A+{descripcion}&priority=10"
 
-        response = requests.get(url, params=params)  # Usa GET como en el ejemplo de UltraMsg
-        print(f"Respuesta de UltraMsg: {response.text}")  # Para depurar errores
+        response = requests.get(url)  # Hacemos la solicitud GET
+        print(f"Respuesta de UltraMsg: {response.text}")  # Para depuración
 
         return response.json()
     except Exception as e:
         print(f"Error al enviar mensaje: {e}")
+
         
 @app.route('/submit', methods=['POST'])
 @limiter.limit("5 per minute")
