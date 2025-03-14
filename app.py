@@ -74,20 +74,21 @@ def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
     try:
         instance_id = os.getenv('ULTRAMSG_INSTANCE_ID')
         token = os.getenv('ULTRAMSG_TOKEN')
-        destino = os.getenv('ULTRAMSG_DESTINO')
-        
+        destinos = os.getenv('ULTRAMSG_DESTINOS').split(',')
+
         mensaje = f"{nombre} consultó sobre {servicio}. Descripción: {descripcion}. Teléfono: +56{telefono}"
-        
-        url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
-        payload = {
-            "token": token,
-            "to": destino,
-            "body": mensaje,
-            "priority": 10
-        }
-        
-        response = requests.post(url, data=payload)
-        print(f"Mensaje enviado: {response.json()}")
+
+        for destino in destinos:
+            url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
+            payload = {
+                'token': token,
+                'to': destino.strip(),
+                'body': mensaje,
+                'priority': 10
+            }
+            response = requests.post(url, data=payload)
+            print(f"Mensaje enviado a {destino}: {response.text}")
+
     except Exception as e:
         print(f"Error al enviar mensaje: {e}")
 
