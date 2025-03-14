@@ -6,14 +6,11 @@ import os
 from dotenv import load_dotenv
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from twilio.rest import Client
-
 import threading
 import time
 
-
 def keep_alive():
-    url = os.getenv('RAILWAY_URL')  # Asegúrate de definir esta variable en Railway con tu dominio
+    url = os.getenv('RAILWAY_URL')
     if not url:
         print("RAILWAY_URL no está configurada. Keep-alive deshabilitado.")
         return
@@ -25,33 +22,28 @@ def keep_alive():
                 print(f"Ping enviado a {url}")
             except requests.exceptions.RequestException as e:
                 print(f"Error en keep-alive: {e}")
-            time.sleep(30)  # Enviar un ping cada 30 segundos
+            time.sleep(30)
 
     thread = threading.Thread(target=ping, daemon=True)
     thread.start()
 
-# Iniciar el keep-alive
 keep_alive()
 
-# Cargar variables de entorno
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)  # Permitir CORS en todas las rutas
+CORS(app)
 
-# Configuración de la base de datos
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# Configuración de límite de tasa
 limiter = Limiter(
     get_remote_address,
     app=app,
     default_limits=["200 per day", "50 per hour"]
 )
 
-# Modelo de base de datos
 class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
@@ -60,7 +52,6 @@ class Usuario(db.Model):
     descripcion = db.Column(db.String(200), nullable=False)
     servicio = db.Column(db.String(50), nullable=False)
 
-# Crear la tabla solo si no existe
 with app.app_context():
     try:
         db.create_all()
@@ -71,7 +62,6 @@ with app.app_context():
 def home():
     return 'Bienvenido a la API de Ecolim'
 
-# Validación de reCAPTCHA
 def validar_recaptcha(token):
     secret_key = os.getenv('RECAPTCHA_SECRET_KEY')
     response = requests.post(
@@ -80,25 +70,29 @@ def validar_recaptcha(token):
     )
     return response.json().get('success', False)
 
-# Enviar mensaje de WhatsApp con Twilio
 def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
     try:
-        account_sid = os.getenv('TWILIO_ACCOUNT_SID')
-        auth_token = os.getenv('TWILIO_AUTH_TOKEN')
-        client = Client(account_sid, auth_token)
-
-        message = client.messages.create(
-            from_='whatsapp:+14155238886',  # Número de Twilio para WhatsApp
-            to=os.getenv('TWILIO_DESTINO'),  # Número destino desde .env
-            body=f"{nombre} consultó sobre {servicio}. Descripción: {descripcion}. Teléfono: +56{telefono}"
-        )
-        print(f"Mensaje enviado: {message.sid}")
+        instance_id = os.getenv('ULTRAMSG_INSTANCE_ID')
+        token = os.getenv('ULTRAMSG_TOKEN')
+        destino = os.getenv('ULTRAMSG_DESTINO')
+        
+        mensaje = f"{nombre} consultó sobre {servicio}. Descripción: {descripcion}. Teléfono: +56{telefono}"
+        
+        url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
+        payload = {
+            "token": token,
+            "to": destino,
+            "body": mensaje,
+            "priority": 10
+        }
+        
+        response = requests.post(url, data=payload)
+        print(f"Mensaje enviado: {response.json()}")
     except Exception as e:
         print(f"Error al enviar mensaje: {e}")
 
-# Ruta para manejar el envío del formulario
 @app.route('/submit', methods=['POST'])
-@limiter.limit("5 per minute")  # Limitar la tasa de solicitudes
+@limiter.limit("5 per minute")
 def submit():
     recaptcha_token = request.form.get('g-recaptcha-response')
     if not recaptcha_token or not validar_recaptcha(recaptcha_token):
@@ -132,5 +126,5 @@ def submit():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    port = int(os.getenv("PORT", 5000))  # Obtener el puerto desde Railway
-    app.run(host='0.0.0.0', port=port, debug=False)  # Host abierto para Railway
+    port = int(os.getenv("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
