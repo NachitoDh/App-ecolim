@@ -76,21 +76,22 @@ def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
         token = os.getenv('ULTRAMSG_TOKEN')  # Token de autenticación UltraMsg
         destino = os.getenv('ULTRAMSG_DESTINO')  # Tu número de WhatsApp donde recibirás los mensajes
 
+        # Construcción de la URL siguiendo la estructura de UltraMsg
         url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
-
-        payload = {
+        params = {
             "token": token,
-            "to": destino,  # Aquí solo se envía a TU número, no al del cliente
+            "to": destino,  # Solo se envía a TU número, no al del cliente
             "body": f"Nuevo contacto:\nNombre: {nombre}\nTeléfono: +56{telefono}\nServicio: {servicio}\nDescripción: {descripcion}",
             "priority": 10
         }
 
-        response = requests.post(url, data=payload)
+        response = requests.get(url, params=params)  # Usa GET como en el ejemplo de UltraMsg
         print(f"Respuesta de UltraMsg: {response.text}")  # Para depurar errores
 
         return response.json()
     except Exception as e:
         print(f"Error al enviar mensaje: {e}")
+        
 @app.route('/submit', methods=['POST'])
 @limiter.limit("5 per minute")
 def submit():
