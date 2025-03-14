@@ -125,6 +125,9 @@ def submit():
         db.session.commit()
 
         enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion)
+        print(f"Estado de la respuesta: {response.status_code}")
+        print(f"Respuesta de UltraMsg: {response.json()}")
+
 
         return jsonify({'message': 'Datos enviados exitosamente!'}), 200
     except Exception as e:
