@@ -80,9 +80,16 @@ def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
         destino = os.getenv('ULTRAMSG_DESTINO')  # Número de WhatsApp donde recibirás los mensajes
 
         # Construcción exacta de la URL como en el ejemplo
-        url = f"https://api.ultramsg.com/{instance_id}/messages/chat?token={token}&to={destino}&body=Nuevo+contacto%3A%0ANombre%3A+{nombre}%0ATeléfono%3A+56{telefono}%0AServicio%3A+{servicio}%0ADescripción%3A+{descripcion}&priority=10"
+       url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
+data = {
+    "token": token,
+    "to": destino,
+    "body": f"Nuevo contacto:\nNombre: {nombre}\nTeléfono: 56{telefono}\nServicio: {servicio}\nDescripción: {descripcion}",
+    "priority": 10
+}
 
-        response = requests.get(url)  # Hacemos la solicitud GET
+response = requests.post(url, data=data)
+print(f"Respuesta de UltraMsg: {response.text}")
         print(f"Respuesta de UltraMsg: {response.text}")  # Para depuración
 
         return response.json()
