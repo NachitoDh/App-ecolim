@@ -9,6 +9,7 @@ from flask_limiter.util import get_remote_address
 import threading
 import time
 
+# Función para mantener la app activa en Railway
 def keep_alive():
     url = os.getenv('RAILWAY_URL')
     if not url:
@@ -62,6 +63,7 @@ with app.app_context():
 def home():
     return 'Bienvenido a la API de Ecolim'
 
+# Validación de reCAPTCHA
 def validar_recaptcha(token):
     secret_key = os.getenv('RECAPTCHA_SECRET_KEY')
     response = requests.post(
@@ -70,32 +72,24 @@ def validar_recaptcha(token):
     )
     return response.json().get('success', False)
 
+# Envío de mensajes por UltraMsg
 def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
     try:
-        instance_id = os.getenv('ULTRAMSG_INSTANCE_ID')
-        token = os.getenv('ULTRAMSG_TOKEN')
-        destino = os.getenv('ULTRAMSG_DESTINO')  # Número de destino configurado en variables de entorno
+        url = "https://api.ultramsg.com/instance110288/messages/chat"
+        payload = f"token=5l4autxy75b4vy6j&to=%2B56948425081&body=Nuevo contacto:\nNombre: {nombre}\nTeléfono: +56{telefono}\nServicio: {servicio}\nDescripción: {descripcion}"
+        payload = payload.encode('utf8').decode('iso-8859-1')
 
-        if not instance_id or not token or not destino:
-            print("Error: Faltan variables de entorno de UltraMsg")
-            return {"error": "Configuración incorrecta de UltraMsg"}
+        headers = {'content-type': 'application/x-www-form-urlencoded'}
 
-        url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
-
-        mensaje = f"Nuevo contacto:\nNombre: {nombre}\nTeléfono: +56{telefono}\nServicio: {servicio}\nDescripción: {descripcion}"
-        payload = f"token={token}&to={destino}&body={mensaje}"
-        payload = payload.encode('utf-8').decode('iso-8859-1')
-
-        headers = {'content-type': "application/x-www-form-urlencoded"}
-
-        response = requests.post(url, data=payload, headers=headers)
+        response = requests.request("POST", url, data=payload, headers=headers)
         print(f"Respuesta de UltraMsg: {response.text}")
 
-        return response.json()
+        return response.text
     except Exception as e:
         print(f"Error al enviar mensaje: {e}")
         return {"error": str(e)}
 
+# Endpoint para recibir datos del formulario
 @app.route('/submit', methods=['POST'])
 @limiter.limit("5 per minute")
 def submit():
