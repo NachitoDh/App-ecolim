@@ -70,16 +70,12 @@ def validar_recaptcha(token):
     )
     return response.json().get('success', False)
 
-import requests
-import os
-
 def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
     try:
-        instance_id = os.getenv('ULTRAMSG_INSTANCE_ID')  # ID de la instancia UltraMsg
-        token = os.getenv('ULTRAMSG_TOKEN')  # Token de autenticación UltraMsg
-        destino = os.getenv('ULTRAMSG_DESTINO')  # Número de WhatsApp donde recibirás los mensajes
+        instance_id = os.getenv('ULTRAMSG_INSTANCE_ID')
+        token = os.getenv('ULTRAMSG_TOKEN')
+        destino = os.getenv('ULTRAMSG_DESTINO')
 
-        # Construcción exacta de la URL como en el ejemplo
         url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
         data = {
             "token": token,
@@ -89,14 +85,12 @@ def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
         }
 
         response = requests.post(url, data=data)
-        print(f"Respuesta de UltraMsg: {response.text}")  # Para depuración
-
+        print(f"Respuesta de UltraMsg: {response.text}")
         return response.json()
     except Exception as e:
         print(f"Error al enviar mensaje: {e}")
+        return None
 
-
-        
 @app.route('/submit', methods=['POST'])
 @limiter.limit("5 per minute")
 def submit():
@@ -105,11 +99,11 @@ def submit():
         return jsonify({'error': 'Error de validación de reCAPTCHA'}), 400
 
     try:
-        nombre = request.form['nombre']
-        telefono = request.form['telefono']
-        correo = request.form['correo']
-        descripcion = request.form['descripcion']
-        servicio = request.form['servicio']
+        nombre = request.form.get('nombre')
+        telefono = request.form.get('telefono')
+        correo = request.form.get('correo')
+        descripcion = request.form.get('descripcion')
+        servicio = request.form.get('servicio')
 
         if not nombre or not telefono or not descripcion or not servicio:
             return jsonify({'error': 'Todos los campos obligatorios deben estar llenos'}), 400
@@ -124,14 +118,11 @@ def submit():
         db.session.add(nuevo_usuario)
         db.session.commit()
 
-        enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion)
-       respuesta_ultramsg = enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion)
-
+        respuesta_ultramsg = enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion)
         if respuesta_ultramsg:
-            print(f"Estado de la respuesta: {respuesta_ultramsg.get('status')}")
-            print(f"Respuesta de UltraMsg: {respuesta_ultramsg}")
-
-
+            print(f"Estado de la respuesta: {respuesta_ultramsg}")
+        else:
+            print("Error al enviar mensaje de WhatsApp.")
 
         return jsonify({'message': 'Datos enviados exitosamente!'}), 200
     except Exception as e:
