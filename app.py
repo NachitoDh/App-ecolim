@@ -74,26 +74,23 @@ def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
     try:
         instance_id = os.getenv('ULTRAMSG_INSTANCE_ID')
         token = os.getenv('ULTRAMSG_TOKEN')
-        destino = f"+56"ULTRAMSG_DESTINO""  # Formato internacional
+        destino = os.getenv('ULTRAMSG_DESTINO')  # Número de destino configurado en variables de entorno
 
-        if not instance_id or not token:
+        if not instance_id or not token or not destino:
             print("Error: Faltan variables de entorno de UltraMsg")
             return {"error": "Configuración incorrecta de UltraMsg"}
 
         url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
-        mensaje = f"Nuevo contacto:\nNombre: {nombre}\nTeléfono: {destino}\nServicio: {servicio}\nDescripción: {descripcion}"
 
-        payload = {
-            "token": token,
-            "to": destino,
-            "body": mensaje
-        }
+        mensaje = f"Nuevo contacto:\nNombre: {nombre}\nTeléfono: +56{telefono}\nServicio: {servicio}\nDescripción: {descripcion}"
+        payload = f"token={token}&to={destino}&body={mensaje}"
+        payload = payload.encode('utf-8').decode('iso-8859-1')
 
-        headers = {'content-type': 'application/x-www-form-urlencoded'}
+        headers = {'content-type': "application/x-www-form-urlencoded"}
 
         response = requests.post(url, data=payload, headers=headers)
-
         print(f"Respuesta de UltraMsg: {response.text}")
+
         return response.json()
     except Exception as e:
         print(f"Error al enviar mensaje: {e}")
