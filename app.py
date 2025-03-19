@@ -73,7 +73,6 @@ def validar_recaptcha(token):
     return response.json().get('success', False)
 
 
-
 def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
     try:
         instance_id = os.getenv('ULTRAMSG_INSTANCE_ID')
@@ -87,12 +86,17 @@ def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
         conn = http.client.HTTPSConnection("api.ultramsg.com", context=ssl._create_unverified_context())
 
         mensaje = f"Nuevo contacto:\nNombre: {nombre}\nTeléfono: {destino}\nServicio: {servicio}\nDescripción: {descripcion}"
+        
         payload = f"token={token}&to={destino}&body={mensaje}"
         payload = payload.encode('utf-8').decode('iso-8859-1')
 
-        headers = {'content-type': "application/x-www-form-urlencoded"}
+        headers = {'Content-Type': "application/x-www-form-urlencoded"}
 
-        conn.request("POST", f"/{instance_id}/messages/chat", payload, headers)
+        url = f"/{instance_id}/messages/chat"
+
+        print(f"Enviando mensaje a {destino} usando {url}")
+
+        conn.request("POST", url, payload, headers)
 
         res = conn.getresponse()
         data = res.read().decode("utf-8")
