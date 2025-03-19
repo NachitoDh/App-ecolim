@@ -8,6 +8,8 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import threading
 import time
+import http.client
+import ssl
 
 def keep_alive():
     url = os.getenv('RAILWAY_URL')
@@ -70,26 +72,37 @@ def validar_recaptcha(token):
     )
     return response.json().get('success', False)
 
+
+
 def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
     try:
         instance_id = os.getenv('ULTRAMSG_INSTANCE_ID')
         token = os.getenv('ULTRAMSG_TOKEN')
-        destino = os.getenv('ULTRAMSG_DESTINO')
+        destino = f"+56{telefono}"  # Formato internacional
 
-        url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
-        data = {
-            "token": token,
-            "to": destino,
-            "body": f"Nuevo contacto:\nNombre: {nombre}\nTeléfono: 56{telefono}\nServicio: {servicio}\nDescripción: {descripcion}",
-            "priority": 10
-        }
+        if not instance_id or not token:
+            print("Error: Faltan variables de entorno de UltraMsg")
+            return {"error": "Configuración incorrecta de UltraMsg"}
 
-        response = requests.post(url, data=data)
-        print(f"Respuesta de UltraMsg: {response.text}")
-        return response.json()
+        conn = http.client.HTTPSConnection("api.ultramsg.com", context=ssl._create_unverified_context())
+
+        mensaje = f"Nuevo contacto:\nNombre: {nombre}\nTeléfono: {destino}\nServicio: {servicio}\nDescripción: {descripcion}"
+        payload = f"token={token}&to={destino}&body={mensaje}"
+        payload = payload.encode('utf-8').decode('iso-8859-1')
+
+        headers = {'content-type': "application/x-www-form-urlencoded"}
+
+        conn.request("POST", f"/{instance_id}/messages/chat", payload, headers)
+
+        res = conn.getresponse()
+        data = res.read().decode("utf-8")
+
+        print(f"Respuesta de UltraMsg: {data}")
+        return data
     except Exception as e:
         print(f"Error al enviar mensaje: {e}")
-        return None
+        return {"error": str(e)}
+
 
 @app.route('/submit', methods=['POST'])
 @limiter.limit("5 per minute")
