@@ -80,21 +80,21 @@ def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
         destino = os.getenv('ULTRAMSG_DESTINO')  # Número de WhatsApp donde recibirás los mensajes
 
         # Construcción exacta de la URL como en el ejemplo
-       url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
-data = {
-    "token": token,
-    "to": destino,
-    "body": f"Nuevo contacto:\nNombre: {nombre}\nTeléfono: 56{telefono}\nServicio: {servicio}\nDescripción: {descripcion}",
-    "priority": 10
-}
+        url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
+        data = {
+            "token": token,
+            "to": destino,
+            "body": f"Nuevo contacto:\nNombre: {nombre}\nTeléfono: 56{telefono}\nServicio: {servicio}\nDescripción: {descripcion}",
+            "priority": 10
+        }
 
-response = requests.post(url, data=data)
-print(f"Respuesta de UltraMsg: {response.text}")
+        response = requests.post(url, data=data)
         print(f"Respuesta de UltraMsg: {response.text}")  # Para depuración
 
         return response.json()
     except Exception as e:
         print(f"Error al enviar mensaje: {e}")
+
 
         
 @app.route('/submit', methods=['POST'])
@@ -125,7 +125,9 @@ def submit():
         db.session.commit()
 
         enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion)
-        print(f"Estado de la respuesta: {response.status_code}")
+        respuesta_ultramsg = enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion)
+        print(f"Respuesta de UltraMsg: {respuesta_ultramsg}")
+
         print(f"Respuesta de UltraMsg: {response.json()}")
 
 
