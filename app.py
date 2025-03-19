@@ -125,10 +125,12 @@ def submit():
         db.session.commit()
 
         enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion)
-        respuesta_ultramsg = enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion)
-        print(f"Respuesta de UltraMsg: {respuesta_ultramsg}")
+       respuesta_ultramsg = enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion)
 
-        print(f"Respuesta de UltraMsg: {response.json()}")
+        if respuesta_ultramsg:
+            print(f"Estado de la respuesta: {respuesta_ultramsg.get('status')}")
+            print(f"Respuesta de UltraMsg: {respuesta_ultramsg}")
+
 
 
         return jsonify({'message': 'Datos enviados exitosamente!'}), 200
