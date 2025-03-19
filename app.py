@@ -76,7 +76,7 @@ def validar_recaptcha(token):
 def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
     try:
         url = "https://api.ultramsg.com/instance110288/messages/chat"
-        payload = f"token=5l4autxy75b4vy6j&to=%2B56948425081&body=Nuevo contacto:\nNombre: {nombre}\nTeléfono: +56{telefono}\nServicio: {servicio}\nDescripción: {descripcion}"
+        payload = f"token=5l4autxy75b4vy6j&to=%2B56948425081&body=Nuevo Cliente:\nNombre: {nombre}\n Telefono: +56{telefono}\nTipo de Servicio: {servicio}\nDescripcion: {descripcion}"
         payload = payload.encode('utf8').decode('iso-8859-1')
 
         headers = {'content-type': 'application/x-www-form-urlencoded'}
