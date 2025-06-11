@@ -13,10 +13,8 @@ RUN pip3 install -r requirements.txt
 
 COPY . .
 
-# Aquí defines el archivo principal de tu app Flask
 ENV FLASK_APP=app.py
 
 EXPOSE 8080
 
-# Comando para iniciar Flask escuchando en todas las IPs y en el puerto 8080
-CMD [ "python3", "-m", "]()
+CMD ["python3", "app.py"]
