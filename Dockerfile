@@ -14,7 +14,8 @@ RUN pip3 install -r requirements.txt
 COPY . .
 
 ENV FLASK_APP=app.py
+ENV PORT=5000
 
-EXPOSE 8080
+EXPOSE 5000
 
 CMD ["python3", "app.py"]
