@@ -9,27 +9,7 @@ from flask_limiter.util import get_remote_address
 import threading
 import time
 
-# Función para mantener la app activa en Railway
-def keep_alive():
-    url = os.getenv('RAILWAY_URL')
-    if not url:
-        print("RAILWAY_URL no está configurada. Keep-alive deshabilitado.")
-        return
-
-    def ping():
-        while True:
-            try:
-                requests.get(url)
-                print(f"Ping enviado a {url}")
-            except requests.exceptions.RequestException as e:
-                print(f"Error en keep-alive: {e}")
-            time.sleep(30)
-
-    thread = threading.Thread(target=ping, daemon=True)
-    thread.start()
-
-keep_alive()
-
+# Cargar variables de entorno desde .env al inicio
 load_dotenv()
 
 app = Flask(__name__)
@@ -66,6 +46,10 @@ def home():
 # Validación de reCAPTCHA
 def validar_recaptcha(token):
     secret_key = os.getenv('RECAPTCHA_SECRET_KEY')
+    if not secret_key:
+        print("RECAPTCHA_SECRET_KEY no está configurada.")
+        return False
+
     response = requests.post(
         'https://www.google.com/recaptcha/api/siteverify',
         data={'secret': secret_key, 'response': token}
@@ -76,7 +60,12 @@ def validar_recaptcha(token):
 def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
     try:
         url = "https://api.ultramsg.com/instance110288/messages/chat"
-        payload = f"token=5l4autxy75b4vy6j&to=%2B56948425081&body=Nuevo Cliente:\nNombre: {nombre}\n Telefono: +56{telefono}\nTipo de Servicio: {servicio}\nDescripcion: {descripcion}"
+        token = os.getenv('ULTRAMSG_TOKEN')
+        if not token:
+            print("ULTRAMSG_TOKEN no está configurado.")
+            return {"error": "Token no configurado"}
+
+        payload = f"token={token}&to=%2B56948425081&body=Nuevo Cliente:\nNombre: {nombre}\n Telefono: +56{telefono}\nTipo de Servicio: {servicio}\nDescripcion: {descripcion}"
         payload = payload.encode('utf8').decode('iso-8859-1')
 
         headers = {'content-type': 'application/x-www-form-urlencoded'}
