@@ -6,8 +6,6 @@ import os
 from dotenv import load_dotenv
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-import threading
-import time
 
 # Cargar variables de entorno desde .env al inicio
 load_dotenv()
@@ -43,42 +41,79 @@ with app.app_context():
 def home():
     return 'Bienvenido a la API de Ecolim'
 
-# Validación de reCAPTCHA
-def validar_recaptcha(token):
+# ---- reCAPTCHA ----
+def validar_recaptcha(token: str) -> bool:
     secret_key = os.getenv('RECAPTCHA_SECRET_KEY')
     if not secret_key:
         print("RECAPTCHA_SECRET_KEY no está configurada.")
         return False
-
-    response = requests.post(
-        'https://www.google.com/recaptcha/api/siteverify',
-        data={'secret': secret_key, 'response': token}
-    )
-    return response.json().get('success', False)
-
-# Envío de mensajes por UltraMsg
-def enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion):
     try:
-        url = "https://api.ultramsg.com/instance110288/messages/chat"
-        token = os.getenv('ULTRAMSG_TOKEN')
-        if not token:
-            print("ULTRAMSG_TOKEN no está configurado.")
-            return {"error": "Token no configurado"}
-
-        payload = f"token={token}&to=%2B56948425081&body=Nuevo Cliente:\nNombre: {nombre}\n Telefono: +56{telefono}\nTipo de Servicio: {servicio}\nDescripcion: {descripcion}"
-        payload = payload.encode('utf8').decode('iso-8859-1')
-
-        headers = {'content-type': 'application/x-www-form-urlencoded'}
-
-        response = requests.request("POST", url, data=payload, headers=headers)
-        print(f"Respuesta de UltraMsg: {response.text}")
-
-        return response.text
+        resp = requests.post(
+            'https://www.google.com/recaptcha/api/siteverify',
+            data={'secret': secret_key, 'response': token},
+            timeout=10
+        )
+        data = resp.json()
+        return bool(data.get('success', False))
     except Exception as e:
-        print(f"Error al enviar mensaje: {e}")
+        print(f"Error validando reCAPTCHA: {e}")
+        return False
+
+# ---- Telegram ----
+def escape_markdown_v2(text: str) -> str:
+    """
+    Escape básico para MarkdownV2 de Telegram (por si activas parse_mode='MarkdownV2').
+    Si NO usas Markdown, puedes omitir esto.
+    """
+    special_chars = r'_*[]()~`>#+-=|{}.!'
+    for ch in special_chars:
+        text = text.replace(ch, f'\\{ch}')
+    return text
+
+def enviar_mensaje_telegram(nombre: str, telefono: str, servicio: str, descripcion: str):
+    token = os.getenv('TELEGRAM_BOT_TOKEN')
+    chat_id = os.getenv('TELEGRAM_CHAT_ID')
+    if not token:
+        return {"error": "TELEGRAM_BOT_TOKEN no configurado"}
+    if not chat_id:
+        return {"error": "TELEGRAM_CHAT_ID no configurado"}
+
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+
+    # Mensaje en texto plano (seguro) — no usar Markdown si no es necesario
+    body = (
+        "📩 *Nuevo cliente (Formulario Ecolim)*\n"
+        f"• *Nombre:* {nombre}\n"
+        f"• *Teléfono:* +56{telefono}\n"
+        f"• *Servicio:* {servicio}\n"
+        f"• *Descripción:* {descripcion}"
+    )
+
+    # Si quieres 100% seguridad de formato, descomenta escape y usa MarkdownV2:
+    # body = (
+    #     "📩 *Nuevo cliente (Formulario Ecolim)*\n"
+    #     f"• *Nombre:* {escape_markdown_v2(nombre)}\n"
+    #     f"• *Teléfono:* {escape_markdown_v2('+56' + telefono)}\n"
+    #     f"• *Servicio:* {escape_markdown_v2(servicio)}\n"
+    #     f"• *Descripción:* {escape_markdown_v2(descripcion)}"
+    # )
+
+    payload = {
+        "chat_id": chat_id,
+        "text": body,
+        "parse_mode": "Markdown"  # o "MarkdownV2" si aplicas escape
+    }
+
+    try:
+        resp = requests.post(url, json=payload, timeout=10)
+        # Log simple para debugging
+        print(f"Telegram status={resp.status_code} resp={resp.text}")
+        return resp.json()
+    except Exception as e:
+        print(f"Error enviando Telegram: {e}")
         return {"error": str(e)}
 
-# Endpoint para recibir datos del formulario
+# ---- Endpoint formulario ----
 @app.route('/submit', methods=['POST'])
 @limiter.limit("5 per minute")
 def submit():
@@ -87,33 +122,38 @@ def submit():
         return jsonify({'error': 'Error de validación de reCAPTCHA'}), 400
 
     try:
-        nombre = request.form.get('nombre')
-        telefono = request.form.get('telefono')
-        correo = request.form.get('correo')
-        descripcion = request.form.get('descripcion')
-        servicio = request.form.get('servicio')
+        nombre = request.form.get('nombre', '').strip()
+        telefono = request.form.get('telefono', '').strip()
+        correo = request.form.get('correo', '').strip()
+        descripcion = request.form.get('descripcion', '').strip()
+        servicio = request.form.get('servicio', '').strip()
 
         if not nombre or not telefono or not descripcion or not servicio:
             return jsonify({'error': 'Todos los campos obligatorios deben estar llenos'}), 400
 
+        # Guardar en BD
         nuevo_usuario = Usuario(
             nombre=nombre,
             telefono=telefono,
-            correo=correo,
+            correo=correo if correo else None,
             descripcion=descripcion,
             servicio=servicio
         )
         db.session.add(nuevo_usuario)
         db.session.commit()
 
-        respuesta_ultramsg = enviar_mensaje_whatsapp(nombre, telefono, servicio, descripcion)
-        if respuesta_ultramsg:
-            print(f"Estado de la respuesta: {respuesta_ultramsg}")
+        # Enviar Telegram (reemplaza UltraMsg)
+        resp_telegram = enviar_mensaje_telegram(nombre, telefono, servicio, descripcion)
+        if isinstance(resp_telegram, dict) and not resp_telegram.get("ok", True):
+            # Telegram devolvió un error
+            app.logger.warning(f"Telegram error: {resp_telegram}")
         else:
-            print("Error al enviar mensaje de WhatsApp.")
+            app.logger.info("Notificación Telegram enviada.")
 
         return jsonify({'message': 'Datos enviados exitosamente!'}), 200
+
     except Exception as e:
+        db.session.rollback()
         app.logger.error(f"Error al enviar datos: {e}")
         return jsonify({'error': str(e)}), 500
 
