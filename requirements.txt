@@ -1,8 +1,11 @@
 Flask
-flask_sqlalchemy
-psycopg2-binary
+Flask-SQLAlchemy
 Flask-Cors
+Flask-Limiter
 python-dotenv
 requests
-Flask-Limiter
+PyMySQL
 Werkzeug
+gunicorn
+urllib3
+
