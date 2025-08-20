@@ -1,0 +1,22 @@
+version: "3.9"
+services:
+  app:
+    build: .
+    container_name: ecolim_api
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks: [edge]
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: ecolim_tunnel
+    restart: unless-stopped
+    networks: [edge]
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    command: tunnel --no-auto-updates run
+
+networks:
+  edge:
+    driver: bridge
